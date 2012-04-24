@@ -79,7 +79,7 @@
         /// <summary>
         /// Create registered dependencies
         /// </summary>
-        public static void DoWork()
+        public static void Create()
         {
             foreach (var spec in specs)
             {
