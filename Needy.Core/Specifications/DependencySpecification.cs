@@ -1,4 +1,6 @@
-﻿namespace Needy.Specifications
+﻿using Needy.Core.Dependencies;
+
+namespace Needy.Specifications
 {
     using System;
     using System.Collections.Generic;
@@ -9,23 +11,87 @@
     /// <summary>
     /// Dependency Specifications
     /// </summary>
-    public class DependencySpecification
+    public class DependencySpecification : IDependencySpecificationRoot
+    {
+        private IDependencySpecification firstSpecification; 
+
+        IDependencySpecification IDependencySpecificationRoot.Specification { set { firstSpecification = value; } }
+
+        internal IDependency Build()
+        {
+            return this.firstSpecification.Build();
+        }
+    }
+
+    public interface IDependencySpecificationRoot
+    {
+        IDependencySpecification Specification { set; }
+    }
+
+    public interface IDependencySpecification
+    {
+        IDependency Build();
+    }
+
+    public class SourceDatabaseSpecification : IDependencySpecification
     {
         /// <summary>
-        /// Gets or sets DatabaseSpecification.
+        /// Initializes a new instance of the SourceDatabaseSpecification class.
         /// </summary>
-        public DatabaseSpecification DatabaseSpecification { get; set; }
+        /// <param name="source">
+        /// The source database name
+        /// </param>
+        /// <param name="LinqDataContextType">
+        /// LinqDataContextType.
+        /// </param>
+        public SourceDatabaseSpecification(string source, Type linqDataContextType, DestinationDatabaseSpecification destinationDatabaseSpecification)
+        {
+            this.SourceDatabaseName = source;
+            this.LinqDataContextType = linqDataContextType;
+            this.DestinationDatabaseSpecification = destinationDatabaseSpecification;
+        }
 
         /// <summary>
         /// Gets or sets the source database name
         /// </summary>
-        public string SourceDatabaseName { get; set; }
+        public string SourceDatabaseName { get; private set; }
 
         /// <summary>
         /// Gets or sets LinqDataContextType.
         /// </summary>
-        public Type LinqDataContextType { get; set; }
+        public Type LinqDataContextType { get; private set; }
 
+        /// <summary>
+        /// Gets or sets DatabaseSpecification.
+        /// </summary>
+        public DestinationDatabaseSpecification DestinationDatabaseSpecification { get; set; }
+
+        IDependency IDependencySpecification.Build()
+        {
+            // By default, the local machine
+            string server = ".";
+            if (this.DestinationDatabaseSpecification.LocationSpecification != null)
+            {
+                server = this.DestinationDatabaseSpecification.LocationSpecification.Location;
+            }
+
+            var source = this.SourceDatabaseName;
+            var destination = this.DestinationDatabaseSpecification.DestinationName;
+
+            if (this.LinqDataContextType != null)
+            {
+                var dependency = typeof(LinqDatabaseDependency<>).MakeGenericType(this.LinqDataContextType);
+                return (IDependency)Activator.CreateInstance(dependency, server, source, destination, new List<string>());
+            }
+            else
+            {
+                return new DatabaseDependency(server, source, destination, new List<string>());
+            }
+        }
+    }
+
+    public static class DependencySpecificationDatabaseExtensions
+    {
         /// <summary>
         /// Specify a database dependency
         /// </summary>
@@ -35,11 +101,12 @@
         /// <returns>
         /// A new database dependency
         /// </returns>
-        public DatabaseSpecification Database(string source)
+        public static DestinationDatabaseSpecification Database(this DependencySpecification owner, string source)
         {
-            this.DatabaseSpecification = new DatabaseSpecification();
-            this.SourceDatabaseName = source;
-            return this.DatabaseSpecification;
+            var destinationSpecification = new DestinationDatabaseSpecification();
+            var sourceSpecification = new SourceDatabaseSpecification(source, null, destinationSpecification);
+            ((IDependencySpecificationRoot)owner).Specification = sourceSpecification;
+            return destinationSpecification;
         }
 
         /// <summary>
@@ -51,11 +118,12 @@
         /// </typeparam>
         /// <returns>
         /// </returns>
-        public DatabaseSpecification Database<T>(string source) where T : DataContext
+        public static DestinationDatabaseSpecification Database<T>(this DependencySpecification owner, string source) where T : DataContext
         {
-            this.SourceDatabaseName = source;
-            this.LinqDataContextType = typeof(T);
-            return new DatabaseSpecification();
+            var destinationSpecification = new DestinationDatabaseSpecification();
+            var sourceSpecification = new SourceDatabaseSpecification(source, typeof(T), destinationSpecification);
+            ((IDependencySpecificationRoot)owner).Specification = sourceSpecification;
+            return destinationSpecification;
         }
     }
 }

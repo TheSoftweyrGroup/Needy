@@ -1,4 +1,6 @@
-﻿namespace Needy.Core
+﻿using Needy.Specifications;
+
+namespace Needy.Core
 {
     using System;
     using System.Collections.Generic;
@@ -20,27 +22,9 @@
         /// <returns>
         /// A concrete type adhering to IDependency
         /// </returns>
-        public static IDependency Build(Specifications.DependencySpecification spec)
+        public static IDependency Build(DependencySpecification spec)
         {
-            // By default, the local machine
-            string server = ".";
-            if (spec.DatabaseSpecification.LocationSpecification != null)
-            {
-                server = spec.DatabaseSpecification.LocationSpecification.Location;
-            }
-
-            var source = spec.SourceDatabaseName;
-            var destination = spec.DatabaseSpecification.DestinationName;
-
-            if (spec.LinqDataContextType != null)
-            {
-                var dependency = typeof(LinqDatabaseDependency<>).MakeGenericType(spec.LinqDataContextType);
-                return (IDependency)Activator.CreateInstance(dependency, server, source, destination, new List<string>());
-            }
-            else
-            {
-                return new DatabaseDependency(server, source, destination, new List<string>());
-            }
+            return spec.Build();
         }
     }
 }

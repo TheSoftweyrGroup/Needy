@@ -76,9 +76,12 @@
     <Compile Include="DependencyFactory.cs" />
     <Compile Include="Needy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Specifications\DatabaseSpecification.cs" />
+    <Compile Include="Specifications\DestinationDatabaseSpecification.cs" />
     <Compile Include="Specifications\DependencySpecification.cs" />
+    <Compile Include="Specifications\DependencySpecificationMsmqExtensions.cs" />
     <Compile Include="Specifications\LocationSpecification.cs" />
+    <Compile Include="Specifications\MsmqQueueName.cs" />
+    <Compile Include="Specifications\SourceMsmqQueuesSpecification.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
